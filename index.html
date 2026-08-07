@@ -225,6 +225,40 @@
   .badge.won { background: var(--success-bg); color: var(--success-text); }
   .badge.lost { background: var(--danger-bg); color: var(--danger-text); }
 
+  /* Email reader */
+  .email-chip {
+    border: none;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-size: 11px;
+    border-radius: 6px;
+    padding: 3px 8px;
+    margin: 0 0 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .email-chip:hover { background: #d5e7f8; }
+  #em-sub { font-size: 12px; color: var(--text-2); margin: -10px 0 14px; }
+  #em-body {
+    font-size: 14px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    max-height: 55vh;
+    overflow-y: auto;
+    margin: 0;
+    color: var(--text);
+  }
+  .field-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .field-head .reader-link {
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-size: 12px;
+    padding: 0;
+  }
+  .field-head .reader-link:hover { text-decoration: underline; background: none; }
+
   /* Next-action prompt */
   .next-prompt {
     position: fixed;
@@ -270,7 +304,14 @@
     z-index: 12; /* above the drawer: the close modal can open from it */
     display: none;
   }
-  .modal.open { display: block; }
+  .modal.open { display: block; animation: modal-pop 0.18s ease-out; }
+  @keyframes modal-pop {
+    from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .modal.open { animation: none; }
+  }
   .modal h3 { margin: 0 0 16px; font-size: 16px; }
   .modal .field { margin-bottom: 12px; }
   .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
@@ -399,6 +440,15 @@
 
 <div class="overlay" id="overlay"></div>
 
+<div class="modal" id="email-modal" role="dialog" aria-label="Email sent to this lead">
+  <h3 id="em-title"></h3>
+  <p id="em-sub"></p>
+  <p id="em-body"></p>
+  <div class="actions">
+    <button type="button" data-close>Close</button>
+  </div>
+</div>
+
 <div class="modal" id="close-modal">
   <h3>Close this lead</h3>
   <form id="close-form">
@@ -450,7 +500,10 @@
       <input id="d-linkedin" placeholder="linkedin.com/in/…">
     </div>
     <div class="field">
-      <label for="d-email-summary">What did your email say?</label>
+      <div class="field-head">
+        <label for="d-email-summary">What did your email say?</label>
+        <button type="button" class="reader-link" id="d-read-email">Read ↗</button>
+      </div>
       <textarea id="d-email-summary" rows="3" placeholder="One-liner of the pitch you sent…"></textarea>
     </div>
     <div class="field">
@@ -723,11 +776,29 @@ function renderCard(lead) {
     <p class="name">${esc(lead.name)}</p>
     ${middle}
     ${next}
+    ${lead.email_summary ? '<button class="email-chip" title="Read the email that went out">✉ Read email</button>' : ""}
     <div class="meta">
       <span class="notes-count">💬 ${noteCount}</span>
       <span class="avatar" title="${esc(lead.owner)}">${initials(lead.owner)}</span>
     </div>`;
+  const chip = card.querySelector(".email-chip");
+  if (chip) chip.addEventListener("click", (e) => {
+    e.stopPropagation(); // read the email without opening the drawer
+    openEmailModal(lead.id);
+  });
   return card;
+}
+
+// --- Email reader ---
+function openEmailModal(leadId, overrideText) {
+  const lead = leads.find((l) => l.id === leadId);
+  if (!lead) return;
+  const text = overrideText ?? lead.email_summary;
+  if (!text) return;
+  $("em-title").textContent = lead.name;
+  $("em-sub").textContent = `Email sent by ${shortName(lead.owner)}`;
+  $("em-body").textContent = text;
+  showModal("email-modal");
 }
 
 // --- Inline quick-add ---
@@ -879,6 +950,11 @@ async function loadNotes(leadId) {
       <div class="txt">${esc(n.body)}</div>
     </div>`).join("") || '<p style="color:var(--text-2); font-size:13px;">No notes yet.</p>';
 }
+
+$("d-read-email").addEventListener("click", () => {
+  // Read what's in the textarea, which may be newer than the saved value.
+  if (openLeadId) openEmailModal(openLeadId, $("d-email-summary").value.trim());
+});
 
 // Moving without drag-and-drop (touch screens): same rules as a drop,
 // including the forced Won/Lost modal for Closed.
