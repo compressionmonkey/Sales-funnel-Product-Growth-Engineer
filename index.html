@@ -173,6 +173,22 @@
     letter-spacing: 0.04em;
     margin: 2px 4px 10px;
   }
+  .added-today {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 3px 10px;
+    margin: 2px 4px 8px;
+    background: var(--card);
+    color: var(--text-2);
+    border: 1px solid var(--border);
+  }
+  .added-today.some {
+    background: var(--success-bg);
+    color: var(--success-text);
+    border-color: var(--success-bg);
+  }
 
   /* Inline quick-add */
   .quick-add { margin-bottom: 8px; }
@@ -723,6 +739,15 @@ function renderBoard() {
     col.innerHTML = `<h2>${stage.label} · ${items.length}</h2>`;
 
     if (stage.key === "reached_out") {
+      // Counts every lead created today (local time), whatever stage
+      // it has already moved to and whoever added it.
+      const addedToday = leads.filter((l) =>
+        new Date(l.created_at).toDateString() === new Date().toDateString()).length;
+      const badge = document.createElement("div");
+      badge.className = "added-today" + (addedToday ? " some" : "");
+      badge.textContent = `${addedToday} added today`;
+      col.prepend(badge);
+
       const qa = document.createElement("div");
       qa.className = "quick-add";
       qa.innerHTML = `
