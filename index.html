@@ -95,14 +95,60 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     gap: 12px;
     flex-wrap: wrap;
   }
   .topbar h1 { font-size: 18px; font-weight: 600; margin: 0; }
-  .topbar .controls { display: flex; gap: 8px; align-items: center; }
+  .topbar .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .topbar select { width: auto; }
   .topbar .who { font-size: 13px; color: var(--text-2); }
+
+  /* Counters */
+  .counters { display: flex; gap: 6px; align-items: center; }
+  .counter {
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12.5px;
+  }
+  .counter b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .counter.overdue b { color: var(--danger-text); }
+  .counter.stale b { color: var(--warn); }
+  .counter.won b { color: var(--success-text); }
+  .counter.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
+  .counter:disabled { cursor: default; background: var(--card); }
+
+  /* Today strip */
+  .today {
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .today .strip-head {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--text-2);
+    margin-bottom: 10px;
+  }
+  .today .strip-head .count { color: var(--text); }
+  .today .items { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+  .today .done-msg { font-size: 13px; color: var(--text-2); margin: 2px 0; }
+  .titem {
+    flex: none;
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    cursor: pointer;
+    background: var(--bg);
+  }
+  .titem:hover { border-color: var(--accent); }
+  .titem .nm { font-weight: 600; font-size: 13px; white-space: nowrap; }
+  .titem .why { font-size: 12px; white-space: nowrap; }
+  .titem.overdue .why { color: var(--danger-text); }
+  .titem.due .why { color: var(--accent); }
+  .titem.stale .why { color: var(--warn); }
 
   .board {
     display: grid;
@@ -128,6 +174,19 @@
     letter-spacing: 0.04em;
     margin: 2px 4px 10px;
   }
+
+  /* Inline quick-add */
+  .quick-add { margin-bottom: 8px; }
+  .quick-add input {
+    font-size: 13px;
+    padding: 8px 10px;
+    border-style: dashed;
+    background: transparent;
+  }
+  .quick-add input:focus { background: var(--card); border-style: solid; }
+  .quick-add .hint { font-size: 11px; color: var(--text-2); margin: 4px 2px 0; display: none; }
+  .quick-add:focus-within .hint { display: block; }
+
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -138,8 +197,9 @@
   }
   .card:hover { border-color: #c9c7bd; }
   .card.stale { border-color: var(--warn-border); }
+  .card.dimmed { opacity: 0.35; }
   .card .name { font-weight: 600; font-size: 13px; margin: 0 0 3px; }
-  .card .wanted { color: var(--text-2); font-size: 12px; margin: 0 0 8px; }
+  .card .email { color: var(--text-2); font-size: 12px; margin: 0 0 8px; }
   .card .stale-msg { color: var(--warn); font-size: 12px; margin: 0 0 8px; }
   .card .next { font-size: 12px; color: var(--accent); margin: 0 0 8px; }
   .card .next.overdue { color: var(--danger-text); }
@@ -165,6 +225,31 @@
   }
   .badge.won { background: var(--success-bg); color: var(--success-text); }
   .badge.lost { background: var(--danger-bg); color: var(--danger-text); }
+
+  /* Next-action prompt */
+  .next-prompt {
+    position: fixed;
+    left: 50%; bottom: 24px;
+    transform: translateX(-50%);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(31,31,29,0.18);
+    padding: 12px 16px;
+    z-index: 30;
+    display: none;
+    max-width: calc(100vw - 32px);
+  }
+  .next-prompt.open { display: block; }
+  .next-prompt .q { font-size: 13px; font-weight: 600; margin-bottom: 9px; }
+  .next-prompt .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    border-radius: 999px;
+    padding: 5px 13px;
+    font-size: 12.5px;
+    background: var(--bg);
+  }
+  .chip:hover { border-color: var(--accent); background: var(--accent-bg); }
 
   /* Modal + drawer */
   .overlay {
@@ -254,38 +339,30 @@
   <div class="topbar">
     <h1>Pipeline</h1>
     <div class="controls">
+      <div class="counters" id="counters"></div>
       <select id="owner-filter"><option value="">All owners</option></select>
-      <button class="primary" id="add-lead-btn">+ Add lead</button>
       <span class="who" id="who"></span>
       <button id="logout-btn">Sign out</button>
     </div>
   </div>
+  <div class="today">
+    <div class="strip-head">Today <span class="count" id="today-count"></span></div>
+    <div class="items" id="today-items"></div>
+  </div>
   <div class="board" id="board"></div>
 </div>
 
-<div class="overlay" id="overlay"></div>
-
-<div class="modal" id="add-modal">
-  <h3>Add lead</h3>
-  <form id="add-form">
-    <div class="field">
-      <label for="lead-name">Company / person</label>
-      <input id="lead-name" required>
-    </div>
-    <div class="field">
-      <label for="lead-contact">Contact (email, phone, LinkedIn)</label>
-      <input id="lead-contact">
-    </div>
-    <div class="field">
-      <label for="lead-wanted">What do they want?</label>
-      <input id="lead-wanted">
-    </div>
-    <div class="actions">
-      <button type="button" data-close>Cancel</button>
-      <button type="submit" class="primary">Add</button>
-    </div>
-  </form>
+<div class="next-prompt" id="next-prompt" role="dialog" aria-label="Set next action">
+  <div class="q">Next action for <span id="np-name"></span>?</div>
+  <div class="chips">
+    <button class="chip" data-days="1">Tomorrow</button>
+    <button class="chip" data-days="3">In 3 days</button>
+    <button class="chip" data-days="7">Next week</button>
+    <button class="chip" data-days="">No date</button>
+  </div>
 </div>
+
+<div class="overlay" id="overlay"></div>
 
 <div class="modal" id="close-modal">
   <h3>Close this lead</h3>
@@ -322,12 +399,16 @@
   </header>
   <div class="body">
     <div class="field">
-      <label for="d-wanted">What do they want?</label>
-      <input id="d-wanted">
+      <label for="d-company">Company</label>
+      <input id="d-company">
     </div>
     <div class="field">
-      <label for="d-contact">Contact</label>
-      <input id="d-contact">
+      <label for="d-email">Contact email</label>
+      <input id="d-email" type="email" placeholder="name@company.com">
+    </div>
+    <div class="field">
+      <label for="d-linkedin">LinkedIn</label>
+      <input id="d-linkedin" placeholder="linkedin.com/in/…">
     </div>
     <div class="field">
       <label for="d-next">Next action date</label>
@@ -368,6 +449,8 @@ let me = null;
 let leads = [];
 let openLeadId = null;
 let pendingCloseId = null;
+let promptLeadId = null;
+let spotlight = null; // 'overdue' | 'stale' | null
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   $("config-warning").style.display = "block";
@@ -450,8 +533,19 @@ async function loadBoard() {
   if (error) { console.error(error); return; }
   leads = data;
   renderOwnerFilter();
-  renderBoard();
+  renderAll();
   if (openLeadId) refreshDrawer();
+}
+
+function renderAll() {
+  renderCounters();
+  renderToday();
+  renderBoard();
+}
+
+function visibleLeads() {
+  const filter = $("owner-filter").value;
+  return leads.filter((l) => !filter || l.owner === filter);
 }
 
 function renderOwnerFilter() {
@@ -463,19 +557,82 @@ function renderOwnerFilter() {
   sel.value = current;
 }
 
-$("owner-filter").addEventListener("change", renderBoard);
+$("owner-filter").addEventListener("change", renderAll);
 
+// --- Counters ---
+function renderCounters() {
+  const overdue = leads.filter(isOverdue).length;
+  const stale = leads.filter(isStale).length;
+  const now = new Date();
+  const won = leads.filter((l) => {
+    if (l.outcome !== "won") return false;
+    const d = new Date(l.last_activity);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+  const mk = (cls, label, n, clickable) =>
+    `<button class="counter ${cls}${spotlight === cls ? " active" : ""}" ${clickable ? `data-spot="${cls}"` : "disabled"}>
+       <b>${n}</b> ${label}</button>`;
+  $("counters").innerHTML =
+    mk("overdue", "overdue", overdue, true) +
+    mk("stale", "stale", stale, true) +
+    mk("won", "won this month", won, false);
+  document.querySelectorAll("[data-spot]").forEach((b) =>
+    b.addEventListener("click", () => {
+      spotlight = spotlight === b.dataset.spot ? null : b.dataset.spot;
+      renderAll();
+    }));
+}
+
+// --- Today strip ---
+function renderToday() {
+  const items = visibleLeads()
+    .filter((l) => isOverdue(l) || isDueToday(l) || isStale(l))
+    .sort((a, b) => (a.next_action || "9999") < (b.next_action || "9999") ? -1 : 1);
+  $("today-count").textContent = `(${items.length})`;
+  const box = $("today-items");
+  if (!items.length) {
+    box.innerHTML = '<p class="done-msg">Nothing due, nothing stale — you’re clear.</p>';
+    return;
+  }
+  box.innerHTML = "";
+  for (const l of items) {
+    let cls, why;
+    if (isOverdue(l)) { cls = "overdue"; why = `overdue ${daysSince(l.next_action + "T00:00:00")}d`; }
+    else if (isDueToday(l)) { cls = "due"; why = "due today"; }
+    else { cls = "stale"; why = `no touch in ${daysSince(l.last_activity)}d`; }
+    const el = document.createElement("button");
+    el.className = "titem " + cls;
+    el.innerHTML = `<span class="nm">${esc(l.name)}</span><span class="why">${why}</span>
+                    <span class="avatar" title="${esc(l.owner)}">${initials(l.owner)}</span>`;
+    el.addEventListener("click", () => openDrawer(l.id));
+    box.appendChild(el);
+  }
+}
+
+// --- Board ---
 function renderBoard() {
-  const filter = $("owner-filter").value;
   const board = $("board");
+  const prevInput = $("quick-input");
+  const keepValue = prevInput ? prevInput.value : "";
+  const keepFocus = prevInput && document.activeElement === prevInput;
   board.innerHTML = "";
+  const vis = visibleLeads();
 
   for (const stage of STAGES) {
-    const items = leads.filter((l) => l.stage === stage.key && (!filter || l.owner === filter));
+    const items = vis.filter((l) => l.stage === stage.key);
     const col = document.createElement("div");
     col.className = "column";
     col.dataset.stage = stage.key;
     col.innerHTML = `<h2>${stage.label} · ${items.length}</h2>`;
+
+    if (stage.key === "reached_out") {
+      const qa = document.createElement("div");
+      qa.className = "quick-add";
+      qa.innerHTML = `
+        <input id="quick-input" placeholder="+ Add a lead — press Enter" aria-label="Add a lead">
+        <p class="hint">Paste a list to add one card per line. Emails &amp; LinkedIn URLs auto-fill their fields.</p>`;
+      col.appendChild(qa);
+    }
 
     col.addEventListener("dragover", (e) => { e.preventDefault(); col.classList.add("drag-over"); });
     col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
@@ -488,12 +645,15 @@ function renderBoard() {
     for (const lead of items) col.appendChild(renderCard(lead));
     board.appendChild(col);
   }
+  wireQuickAdd(keepValue, keepFocus);
 }
 
 function renderCard(lead) {
   const card = document.createElement("div");
   const stale = isStale(lead);
   card.className = "card" + (stale ? " stale" : "");
+  if (spotlight === "overdue" && !isOverdue(lead)) card.classList.add("dimmed");
+  if (spotlight === "stale" && !stale) card.classList.add("dimmed");
   card.draggable = true;
   card.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", lead.id));
   card.addEventListener("click", () => openDrawer(lead.id));
@@ -505,8 +665,8 @@ function renderCard(lead) {
     middle = `<span class="badge ${lead.outcome}">${lead.outcome === "won" ? "Won" : "Lost"}${reason}</span>`;
   } else if (stale) {
     middle = `<p class="stale-msg">No touch in ${daysSince(lead.last_activity)} days</p>`;
-  } else if (lead.wanted) {
-    middle = `<p class="wanted">${esc(lead.wanted)}</p>`;
+  } else if (lead.email) {
+    middle = `<p class="email">${esc(lead.email)}</p>`;
   }
 
   let next = "";
@@ -526,6 +686,51 @@ function renderCard(lead) {
   return card;
 }
 
+// --- Inline quick-add ---
+function wireQuickAdd(keepValue, keepFocus) {
+  const input = $("quick-input");
+  if (!input) return;
+  if (keepValue) input.value = keepValue;
+  if (keepFocus) input.focus();
+  input.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    addLeadsFromText(input.value);
+    input.value = "";
+  });
+  input.addEventListener("paste", (e) => {
+    const text = (e.clipboardData || window.clipboardData).getData("text");
+    if (!text.includes("\n")) return;
+    e.preventDefault();
+    addLeadsFromText(text);
+    input.value = "";
+  });
+}
+
+async function addLeadsFromText(text) {
+  const lines = text.split("\n").map((s) => s.trim()).filter(Boolean);
+  if (!lines.length) return;
+  const rows = lines.map((line) => {
+    const row = { name: line, owner: me.email };
+    const isEmail = /\S+@\S+\.\S+/.test(line);
+    const isLinkedin = /linkedin\.com|https?:\/\//i.test(line);
+    if (isEmail) {
+      row.email = line;
+      row.name = line.match(/(\S+)@/)[1].replace(/[._-]/g, " ");
+    } else if (isLinkedin) {
+      row.linkedin = line;
+      row.name = line.replace(/^https?:\/\/(www\.)?/i, "").replace(/linkedin\.com\/in\//i, "").replace(/\/$/, "");
+    }
+    return row;
+  });
+  const { error } = await db.from("leads").insert(rows);
+  if (error) { console.error(error); return; }
+  await loadBoard();
+  const input = $("quick-input");
+  if (input) input.focus();
+}
+
+// --- Drag → next-action prompt ---
 async function onDrop(leadId, stage) {
   const lead = leads.find((l) => l.id === leadId);
   if (!lead || lead.stage === stage) return;
@@ -543,8 +748,34 @@ async function onDrop(leadId, stage) {
     lost_reason: null,
     last_activity: new Date().toISOString(),
   }).eq("id", leadId);
-  loadBoard();
+  await loadBoard();
+  showNextPrompt(leadId);
 }
+
+function showNextPrompt(leadId) {
+  const lead = leads.find((l) => l.id === leadId);
+  if (!lead) return;
+  promptLeadId = leadId;
+  $("np-name").textContent = lead.name;
+  $("next-prompt").classList.add("open");
+}
+
+function daysFromNow(n) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+document.querySelectorAll("#next-prompt .chip").forEach((chip) =>
+  chip.addEventListener("click", async () => {
+    const leadId = promptLeadId;
+    promptLeadId = null;
+    $("next-prompt").classList.remove("open");
+    if (!leadId) return;
+    const next_action = chip.dataset.days === "" ? null : daysFromNow(Number(chip.dataset.days));
+    await db.from("leads").update({ next_action }).eq("id", leadId);
+    loadBoard();
+  }));
 
 // --- Close modal ---
 document.querySelectorAll('input[name="outcome"]').forEach((r) =>
@@ -567,25 +798,6 @@ $("close-form").addEventListener("submit", async (e) => {
   loadBoard();
 });
 
-// --- Add lead ---
-$("add-lead-btn").addEventListener("click", () => {
-  $("add-form").reset();
-  showModal("add-modal");
-  $("lead-name").focus();
-});
-
-$("add-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  await db.from("leads").insert({
-    name: $("lead-name").value.trim(),
-    contact: $("lead-contact").value.trim() || null,
-    wanted: $("lead-wanted").value.trim() || null,
-    owner: me.email,
-  });
-  hideModals();
-  loadBoard();
-});
-
 // --- Drawer ---
 function openDrawer(id) {
   openLeadId = id;
@@ -600,9 +812,10 @@ function refreshDrawer() {
   if (!lead) { closeDrawer(); return; }
   $("d-name").textContent = lead.name;
   const stageLabel = STAGES.find((s) => s.key === lead.stage)?.label ?? lead.stage;
-  $("d-sub").textContent = `${stageLabel} · ${shortName(lead.owner)}`;
-  $("d-wanted").value = lead.wanted ?? "";
-  $("d-contact").value = lead.contact ?? "";
+  $("d-sub").textContent = `${stageLabel} · added by ${shortName(lead.owner)}`;
+  $("d-company").value = lead.name ?? "";
+  $("d-email").value = lead.email ?? "";
+  $("d-linkedin").value = lead.linkedin ?? "";
   $("d-next").value = lead.next_action ?? "";
 }
 
@@ -622,15 +835,17 @@ async function loadNotes(leadId) {
 $("d-add-note").addEventListener("click", async () => {
   const body = $("d-new-note").value.trim();
   if (!body || !openLeadId) return;
-  await db.from("notes").insert({ lead_id: openLeadId, author: me.email, body });
-  await db.from("leads").update({ last_activity: new Date().toISOString() }).eq("id", openLeadId);
+  const leadId = openLeadId;
+  await db.from("notes").insert({ lead_id: leadId, author: me.email, body });
+  await db.from("leads").update({ last_activity: new Date().toISOString() }).eq("id", leadId);
   $("d-new-note").value = "";
-  loadNotes(openLeadId);
-  loadBoard();
+  loadNotes(leadId);
+  await loadBoard();
+  showNextPrompt(leadId); // every touch sets the next touch
 });
 
 let saveTimer = null;
-for (const [id, field] of [["d-wanted", "wanted"], ["d-contact", "contact"], ["d-next", "next_action"]]) {
+for (const [id, field] of [["d-company", "name"], ["d-email", "email"], ["d-linkedin", "linkedin"], ["d-next", "next_action"]]) {
   $(id).addEventListener("input", () => {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
@@ -681,6 +896,8 @@ function initials(email) {
 function shortName(email) { return email.split("@")[0]; }
 function daysSince(iso) { return Math.floor((Date.now() - new Date(iso)) / 86400000); }
 function isStale(lead) { return lead.stage !== "closed" && daysSince(lead.last_activity) >= STALE_DAYS; }
+function isOverdue(lead) { return lead.stage !== "closed" && lead.next_action && lead.next_action < todayStr(); }
+function isDueToday(lead) { return lead.stage !== "closed" && lead.next_action === todayStr(); }
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function fmtDate(d) {
   return new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
