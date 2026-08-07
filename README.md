@@ -1,9 +1,10 @@
 # Sales-funnel-Product-Growth-Engineer
 # GTM board
 
-A single-file sales pipeline board for a small team. Four columns
-(Reached out → Responded → Follow-up → Closed), drag-and-drop, notes
-per lead, staleness warnings, and live sync between users via Supabase.
+A single-file sales pipeline board for a small team. Five columns
+(Reached out → Responded → Follow-up → No response → Closed),
+drag-and-drop, notes per lead, staleness warnings, and live sync
+between users via Supabase.
 
 No build step, no framework — `index.html` is the whole app.
 
@@ -63,9 +64,13 @@ other servers, add an equivalent catch-all rewrite rule.
 - Dropping a card into **Closed** forces a Won/Lost choice; a lost deal
   asks for the reason (price, timing, not a fit…). This is deliberate —
   it's the only way to close a card, so the data always gets captured.
-- **Click a card** to open the drawer: edit company, contact email,
-  LinkedIn, next action date, and add timestamped notes. Notes are
-  append-only and stamped with the author automatically.
+- **Click a card** to open the drawer: change its stage, edit company,
+  contact email, LinkedIn, what your email said, next action date, and
+  add timestamped notes. Notes are append-only and stamped with the
+  author automatically.
+- **No response** is a parking lot for leads that went quiet — cards
+  there skip the staleness warning and only resurface through their
+  next action date.
 - **Counters** in the top bar (overdue / stale / won this month) —
   tap one to spotlight those cards on the board.
 - Cards with **no activity for 3 days** get an amber border and a
@@ -76,6 +81,6 @@ other servers, add an equivalent catch-all rewrite rule.
 - Changes sync live — when one of you moves a card, the other sees it
   without refreshing.
 
-Upgrading from the old contact/wanted fields? Run
-`gtm-board/migrate-2026-08-07-email-linkedin.sql` once in the Supabase
-SQL editor.
+Upgrading an existing database? Run the `gtm-board/migrate-*.sql` files
+you haven't run yet, in filename order, once each in the Supabase SQL
+editor.
