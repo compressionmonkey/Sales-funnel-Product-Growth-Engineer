@@ -44,9 +44,9 @@ Any static hosting works. Easiest options:
 
 The app routes the login screen to `/login` and the board to `/pipeline`.
 For those URLs to survive a page refresh, the host must rewrite all paths
-to `index.html` — the included `_redirects` file does this on Netlify
-(deploy it alongside `index.html`). On other servers, add an equivalent
-catch-all rewrite rule.
+to `index.html` — the included `_redirects` file does this on Netlify and
+`vercel.json` does it on Vercel (deploy them alongside `index.html`). On
+other servers, add an equivalent catch-all rewrite rule.
 
 ## How the flow works
 
