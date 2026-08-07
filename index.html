@@ -1,0 +1,668 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GTM board</title>
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --card: #ffffff;
+    --border: #e2e0d8;
+    --text: #1f1f1d;
+    --text-2: #6b6a64;
+    --accent: #185fa5;
+    --accent-bg: #e6f1fb;
+    --warn: #ba7517;
+    --warn-border: #efb75a;
+    --success-bg: #eaf3de;
+    --success-text: #3b6d11;
+    --danger-bg: #fcebeb;
+    --danger-text: #a32d2d;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+  }
+  button {
+    font: inherit;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 7px 14px;
+    color: var(--text);
+  }
+  button:hover { background: #f0efe9; }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  button.primary:hover { background: #14528f; }
+  input, select, textarea {
+    font: inherit;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    background: var(--card);
+    color: var(--text);
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-bg);
+  }
+  label { font-size: 12px; color: var(--text-2); display: block; margin-bottom: 4px; }
+
+  /* Login */
+  #login-view {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .login-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    width: 340px;
+  }
+  .login-card h1 { font-size: 20px; font-weight: 600; margin: 0 0 20px; }
+  .login-card .field { margin-bottom: 14px; }
+  #login-error { color: var(--danger-text); font-size: 13px; margin-top: 10px; display: none; }
+  #config-warning {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  /* Board */
+  #app-view { display: none; padding: 16px 20px; }
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .topbar h1 { font-size: 18px; font-weight: 600; margin: 0; }
+  .topbar .controls { display: flex; gap: 8px; align-items: center; }
+  .topbar select { width: auto; }
+  .topbar .who { font-size: 13px; color: var(--text-2); }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  @media (max-width: 900px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .board { grid-template-columns: 1fr; } }
+
+  .column {
+    background: #edece6;
+    border-radius: 12px;
+    padding: 10px;
+    min-height: 200px;
+  }
+  .column.drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; }
+  .column h2 {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 2px 4px 10px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    cursor: grab;
+  }
+  .card:hover { border-color: #c9c7bd; }
+  .card.stale { border-color: var(--warn-border); }
+  .card .name { font-weight: 600; font-size: 13px; margin: 0 0 3px; }
+  .card .wanted { color: var(--text-2); font-size: 12px; margin: 0 0 8px; }
+  .card .stale-msg { color: var(--warn); font-size: 12px; margin: 0 0 8px; }
+  .card .next { font-size: 12px; color: var(--accent); margin: 0 0 8px; }
+  .card .next.overdue { color: var(--danger-text); }
+  .card .meta { display: flex; justify-content: space-between; align-items: center; }
+  .card .notes-count { font-size: 11px; color: var(--text-2); }
+  .avatar {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+  }
+  .badge {
+    font-size: 11px;
+    border-radius: 6px;
+    padding: 2px 8px;
+    display: inline-block;
+  }
+  .badge.won { background: var(--success-bg); color: var(--success-text); }
+  .badge.lost { background: var(--danger-bg); color: var(--danger-text); }
+
+  /* Modal + drawer */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: none;
+    z-index: 10;
+  }
+  .overlay.open { display: block; }
+  .modal {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--card);
+    border-radius: 12px;
+    padding: 24px;
+    width: min(400px, calc(100vw - 32px));
+    z-index: 11;
+    display: none;
+  }
+  .modal.open { display: block; }
+  .modal h3 { margin: 0 0 16px; font-size: 16px; }
+  .modal .field { margin-bottom: 12px; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+  .drawer {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(420px, 100vw);
+    background: var(--card);
+    border-left: 1px solid var(--border);
+    z-index: 11;
+    display: none;
+    flex-direction: column;
+  }
+  .drawer.open { display: flex; }
+  .drawer header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .drawer header h3 { margin: 0; font-size: 16px; }
+  .drawer header .sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+  .drawer .body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+  .drawer .field { margin-bottom: 14px; }
+  .note {
+    border-left: 3px solid var(--accent-bg);
+    padding: 6px 10px;
+    margin-bottom: 10px;
+  }
+  .note .who { font-size: 11px; color: var(--text-2); margin-bottom: 2px; }
+  .note .txt { font-size: 13px; white-space: pre-wrap; }
+  .drawer footer { padding: 12px 20px; border-top: 1px solid var(--border); }
+  .drawer footer .row { display: flex; gap: 8px; margin-top: 8px; }
+  .icon-btn { border: none; background: none; padding: 4px; font-size: 16px; color: var(--text-2); }
+  .icon-btn:hover { color: var(--text); background: none; }
+  .danger-link { color: var(--danger-text); background: none; border: none; font-size: 12px; padding: 0; margin-top: 16px; }
+  .danger-link:hover { text-decoration: underline; background: none; }
+</style>
+</head>
+<body>
+
+<div id="login-view">
+  <div class="login-card">
+    <h1>GTM board</h1>
+    <div id="config-warning">Supabase is not configured yet — open index.html and fill in SUPABASE_URL and SUPABASE_ANON_KEY at the top of the script.</div>
+    <form id="login-form">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="primary" style="width:100%">Sign in</button>
+      <p id="login-error"></p>
+    </form>
+  </div>
+</div>
+
+<div id="app-view">
+  <div class="topbar">
+    <h1>Pipeline</h1>
+    <div class="controls">
+      <select id="owner-filter"><option value="">All owners</option></select>
+      <button class="primary" id="add-lead-btn">+ Add lead</button>
+      <span class="who" id="who"></span>
+      <button id="logout-btn">Sign out</button>
+    </div>
+  </div>
+  <div class="board" id="board"></div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="modal" id="add-modal">
+  <h3>Add lead</h3>
+  <form id="add-form">
+    <div class="field">
+      <label for="lead-name">Company / person</label>
+      <input id="lead-name" required>
+    </div>
+    <div class="field">
+      <label for="lead-contact">Contact (email, phone, LinkedIn)</label>
+      <input id="lead-contact">
+    </div>
+    <div class="field">
+      <label for="lead-wanted">What do they want?</label>
+      <input id="lead-wanted">
+    </div>
+    <div class="actions">
+      <button type="button" data-close>Cancel</button>
+      <button type="submit" class="primary">Add</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="close-modal">
+  <h3>Close this lead</h3>
+  <form id="close-form">
+    <div class="field">
+      <label>Outcome</label>
+      <div style="display:flex; gap:8px;">
+        <label style="display:flex; align-items:center; gap:6px; font-size:14px; color:var(--text);">
+          <input type="radio" name="outcome" value="won" style="width:auto" required> Won
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:14px; color:var(--text);">
+          <input type="radio" name="outcome" value="lost" style="width:auto"> Lost
+        </label>
+      </div>
+    </div>
+    <div class="field" id="reason-field" style="display:none">
+      <label for="lost-reason">Why lost? (price, timing, not a fit…)</label>
+      <input id="lost-reason">
+    </div>
+    <div class="actions">
+      <button type="button" data-close>Cancel</button>
+      <button type="submit" class="primary">Close lead</button>
+    </div>
+  </form>
+</div>
+
+<div class="drawer" id="drawer">
+  <header>
+    <div>
+      <h3 id="d-name"></h3>
+      <div class="sub" id="d-sub"></div>
+    </div>
+    <button class="icon-btn" id="drawer-close" aria-label="Close">✕</button>
+  </header>
+  <div class="body">
+    <div class="field">
+      <label for="d-wanted">What do they want?</label>
+      <input id="d-wanted">
+    </div>
+    <div class="field">
+      <label for="d-contact">Contact</label>
+      <input id="d-contact">
+    </div>
+    <div class="field">
+      <label for="d-next">Next action date</label>
+      <input id="d-next" type="date">
+    </div>
+    <label>Notes</label>
+    <div id="d-notes"></div>
+    <button class="danger-link" id="d-delete">Delete lead</button>
+  </div>
+  <footer>
+    <textarea id="d-new-note" rows="2" placeholder="Add a note…"></textarea>
+    <div class="row">
+      <button class="primary" id="d-add-note" style="margin-left:auto">Add note</button>
+    </div>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// ============================================================
+// CONFIG — paste your Supabase project values here.
+// Find them in Supabase: Project settings -> API.
+const SUPABASE_URL = "";
+const SUPABASE_ANON_KEY = "";
+// ============================================================
+
+const STAGES = [
+  { key: "reached_out", label: "Reached out" },
+  { key: "responded",   label: "Responded" },
+  { key: "follow_up",   label: "Follow-up" },
+  { key: "closed",      label: "Closed" },
+];
+const STALE_DAYS = 3;
+
+const $ = (id) => document.getElementById(id);
+let db = null;
+let me = null;
+let leads = [];
+let openLeadId = null;
+let pendingCloseId = null;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  $("config-warning").style.display = "block";
+} else {
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  init();
+}
+
+async function init() {
+  const { data: { session } } = await db.auth.getSession();
+  if (session) enterApp(session.user);
+
+  db.auth.onAuthStateChange((_event, session) => {
+    if (session && !me) enterApp(session.user);
+    if (!session) location.reload();
+  });
+}
+
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!db) return;
+  const err = $("login-error");
+  err.style.display = "none";
+  const { error } = await db.auth.signInWithPassword({
+    email: $("email").value.trim(),
+    password: $("password").value,
+  });
+  if (error) {
+    err.textContent = error.message;
+    err.style.display = "block";
+  }
+});
+
+function enterApp(user) {
+  me = user;
+  $("login-view").style.display = "none";
+  $("app-view").style.display = "block";
+  $("who").textContent = user.email;
+  loadBoard();
+
+  db.channel("board-changes")
+    .on("postgres_changes", { event: "*", schema: "public", table: "leads" }, loadBoard)
+    .on("postgres_changes", { event: "*", schema: "public", table: "notes" }, loadBoard)
+    .subscribe();
+}
+
+$("logout-btn").addEventListener("click", () => db.auth.signOut());
+
+async function loadBoard() {
+  const { data, error } = await db
+    .from("leads")
+    .select("*, notes(count)")
+    .order("next_action", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  if (error) { console.error(error); return; }
+  leads = data;
+  renderOwnerFilter();
+  renderBoard();
+  if (openLeadId) refreshDrawer();
+}
+
+function renderOwnerFilter() {
+  const sel = $("owner-filter");
+  const current = sel.value;
+  const owners = [...new Set(leads.map((l) => l.owner))].sort();
+  sel.innerHTML = '<option value="">All owners</option>' +
+    owners.map((o) => `<option value="${esc(o)}">${esc(shortName(o))}</option>`).join("");
+  sel.value = current;
+}
+
+$("owner-filter").addEventListener("change", renderBoard);
+
+function renderBoard() {
+  const filter = $("owner-filter").value;
+  const board = $("board");
+  board.innerHTML = "";
+
+  for (const stage of STAGES) {
+    const items = leads.filter((l) => l.stage === stage.key && (!filter || l.owner === filter));
+    const col = document.createElement("div");
+    col.className = "column";
+    col.dataset.stage = stage.key;
+    col.innerHTML = `<h2>${stage.label} · ${items.length}</h2>`;
+
+    col.addEventListener("dragover", (e) => { e.preventDefault(); col.classList.add("drag-over"); });
+    col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
+    col.addEventListener("drop", (e) => {
+      e.preventDefault();
+      col.classList.remove("drag-over");
+      onDrop(e.dataTransfer.getData("text/plain"), stage.key);
+    });
+
+    for (const lead of items) col.appendChild(renderCard(lead));
+    board.appendChild(col);
+  }
+}
+
+function renderCard(lead) {
+  const card = document.createElement("div");
+  const stale = isStale(lead);
+  card.className = "card" + (stale ? " stale" : "");
+  card.draggable = true;
+  card.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", lead.id));
+  card.addEventListener("click", () => openDrawer(lead.id));
+
+  const noteCount = lead.notes?.[0]?.count ?? 0;
+  let middle = "";
+  if (lead.stage === "closed" && lead.outcome) {
+    const reason = lead.outcome === "lost" && lead.lost_reason ? " · " + esc(lead.lost_reason) : "";
+    middle = `<span class="badge ${lead.outcome}">${lead.outcome === "won" ? "Won" : "Lost"}${reason}</span>`;
+  } else if (stale) {
+    middle = `<p class="stale-msg">No touch in ${daysSince(lead.last_activity)} days</p>`;
+  } else if (lead.wanted) {
+    middle = `<p class="wanted">${esc(lead.wanted)}</p>`;
+  }
+
+  let next = "";
+  if (lead.stage !== "closed" && lead.next_action) {
+    const overdue = lead.next_action < todayStr();
+    next = `<p class="next${overdue ? " overdue" : ""}">Next: ${fmtDate(lead.next_action)}${overdue ? " (overdue)" : ""}</p>`;
+  }
+
+  card.innerHTML = `
+    <p class="name">${esc(lead.name)}</p>
+    ${middle}
+    ${next}
+    <div class="meta">
+      <span class="notes-count">💬 ${noteCount}</span>
+      <span class="avatar" title="${esc(lead.owner)}">${initials(lead.owner)}</span>
+    </div>`;
+  return card;
+}
+
+async function onDrop(leadId, stage) {
+  const lead = leads.find((l) => l.id === leadId);
+  if (!lead || lead.stage === stage) return;
+
+  if (stage === "closed") {
+    pendingCloseId = leadId;
+    $("close-form").reset();
+    $("reason-field").style.display = "none";
+    showModal("close-modal");
+    return;
+  }
+  await db.from("leads").update({
+    stage,
+    outcome: null,
+    lost_reason: null,
+    last_activity: new Date().toISOString(),
+  }).eq("id", leadId);
+  loadBoard();
+}
+
+// --- Close modal ---
+document.querySelectorAll('input[name="outcome"]').forEach((r) =>
+  r.addEventListener("change", () => {
+    $("reason-field").style.display = r.value === "lost" && r.checked ? "block" : "none";
+  })
+);
+
+$("close-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const outcome = new FormData(e.target).get("outcome");
+  await db.from("leads").update({
+    stage: "closed",
+    outcome,
+    lost_reason: outcome === "lost" ? $("lost-reason").value.trim() || null : null,
+    last_activity: new Date().toISOString(),
+  }).eq("id", pendingCloseId);
+  pendingCloseId = null;
+  hideModals();
+  loadBoard();
+});
+
+// --- Add lead ---
+$("add-lead-btn").addEventListener("click", () => {
+  $("add-form").reset();
+  showModal("add-modal");
+  $("lead-name").focus();
+});
+
+$("add-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await db.from("leads").insert({
+    name: $("lead-name").value.trim(),
+    contact: $("lead-contact").value.trim() || null,
+    wanted: $("lead-wanted").value.trim() || null,
+    owner: me.email,
+  });
+  hideModals();
+  loadBoard();
+});
+
+// --- Drawer ---
+function openDrawer(id) {
+  openLeadId = id;
+  refreshDrawer();
+  $("overlay").classList.add("open");
+  $("drawer").classList.add("open");
+  loadNotes(id);
+}
+
+function refreshDrawer() {
+  const lead = leads.find((l) => l.id === openLeadId);
+  if (!lead) { closeDrawer(); return; }
+  $("d-name").textContent = lead.name;
+  const stageLabel = STAGES.find((s) => s.key === lead.stage)?.label ?? lead.stage;
+  $("d-sub").textContent = `${stageLabel} · ${shortName(lead.owner)}`;
+  $("d-wanted").value = lead.wanted ?? "";
+  $("d-contact").value = lead.contact ?? "";
+  $("d-next").value = lead.next_action ?? "";
+}
+
+async function loadNotes(leadId) {
+  const box = $("d-notes");
+  box.innerHTML = '<p style="color:var(--text-2); font-size:13px;">Loading…</p>';
+  const { data } = await db.from("notes").select("*")
+    .eq("lead_id", leadId).order("created_at", { ascending: false });
+  if (leadId !== openLeadId) return;
+  box.innerHTML = (data ?? []).map((n) => `
+    <div class="note">
+      <div class="who">${esc(shortName(n.author))} · ${fmtDateTime(n.created_at)}</div>
+      <div class="txt">${esc(n.body)}</div>
+    </div>`).join("") || '<p style="color:var(--text-2); font-size:13px;">No notes yet.</p>';
+}
+
+$("d-add-note").addEventListener("click", async () => {
+  const body = $("d-new-note").value.trim();
+  if (!body || !openLeadId) return;
+  await db.from("notes").insert({ lead_id: openLeadId, author: me.email, body });
+  await db.from("leads").update({ last_activity: new Date().toISOString() }).eq("id", openLeadId);
+  $("d-new-note").value = "";
+  loadNotes(openLeadId);
+  loadBoard();
+});
+
+let saveTimer = null;
+for (const [id, field] of [["d-wanted", "wanted"], ["d-contact", "contact"], ["d-next", "next_action"]]) {
+  $(id).addEventListener("input", () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      if (!openLeadId) return;
+      await db.from("leads").update({ [field]: $(id).value || null }).eq("id", openLeadId);
+      loadBoard();
+    }, 600);
+  });
+}
+
+$("d-delete").addEventListener("click", async () => {
+  const lead = leads.find((l) => l.id === openLeadId);
+  if (!lead || !confirm(`Delete "${lead.name}" and all its notes?`)) return;
+  await db.from("leads").delete().eq("id", openLeadId);
+  closeDrawer();
+  loadBoard();
+});
+
+function closeDrawer() {
+  openLeadId = null;
+  $("drawer").classList.remove("open");
+  $("overlay").classList.remove("open");
+}
+$("drawer-close").addEventListener("click", closeDrawer);
+
+// --- Modal helpers ---
+function showModal(id) {
+  $("overlay").classList.add("open");
+  $(id).classList.add("open");
+}
+function hideModals() {
+  document.querySelectorAll(".modal").forEach((m) => m.classList.remove("open"));
+  if (!openLeadId) $("overlay").classList.remove("open");
+}
+$("overlay").addEventListener("click", () => { hideModals(); closeDrawer(); });
+document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", hideModals));
+
+// --- Utils ---
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function initials(email) {
+  const name = email.split("@")[0];
+  const parts = name.split(/[._-]/).filter(Boolean);
+  return (parts.length > 1 ? parts[0][0] + parts[1][0] : name.slice(0, 2));
+}
+function shortName(email) { return email.split("@")[0]; }
+function daysSince(iso) { return Math.floor((Date.now() - new Date(iso)) / 86400000); }
+function isStale(lead) { return lead.stage !== "closed" && daysSince(lead.last_activity) >= STALE_DAYS; }
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function fmtDate(d) {
+  return new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+}
+function fmtDateTime(iso) {
+  return new Date(iso).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+</script>
+</body>
+</html>
