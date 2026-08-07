@@ -3,8 +3,8 @@
 create table if not exists leads (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  contact text,
-  wanted text,
+  email text,
+  linkedin text,
   stage text not null default 'reached_out'
     check (stage in ('reached_out', 'responded', 'follow_up', 'closed')),
   owner text not null,

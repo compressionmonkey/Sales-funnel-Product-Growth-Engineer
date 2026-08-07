@@ -50,18 +50,32 @@ other servers, add an equivalent catch-all rewrite rule.
 
 ## How the flow works
 
-- **+ Add lead** creates a card in *Reached out*, owned by whoever is
-  logged in.
-- **Drag cards** between columns as the deal progresses.
+- **Quick-add** at the top of *Reached out*: type a name and press
+  Enter — the input stays focused so you can add several in a row.
+  Paste a multi-line list to create one card per line; pasting an email
+  or LinkedIn URL fills that field automatically.
+- The **Today strip** above the board is the work queue: every card
+  that is overdue, due today, or stale, worked left to right. When it's
+  empty, you're done for the day.
+- **Drag cards** between columns as the deal progresses. After every
+  drag (and every note), a **next-action prompt** offers one-tap dates
+  (tomorrow / 3 days / next week) so no card is left without a next touch.
 - Dropping a card into **Closed** forces a Won/Lost choice; a lost deal
   asks for the reason (price, timing, not a fit…). This is deliberate —
   it's the only way to close a card, so the data always gets captured.
-- **Click a card** to open the drawer: edit what they want, contact,
-  next action date, and add timestamped notes. Notes are append-only
-  and stamped with the author automatically.
+- **Click a card** to open the drawer: edit company, contact email,
+  LinkedIn, next action date, and add timestamped notes. Notes are
+  append-only and stamped with the author automatically.
+- **Counters** in the top bar (overdue / stale / won this month) —
+  tap one to spotlight those cards on the board.
 - Cards with **no activity for 3 days** get an amber border and a
   "no touch in N days" warning (change `STALE_DAYS` in the script).
 - Cards whose **next action date** has passed show it in red as overdue.
-- The **owner filter** in the top bar shows one person's cards.
+- Everyone sees the whole board; the **owner filter** narrows it to one
+  person's cards when needed.
 - Changes sync live — when one of you moves a card, the other sees it
   without refreshing.
+
+Upgrading from the old contact/wanted fields? Run
+`gtm-board/migrate-2026-08-07-email-linkedin.sql` once in the Supabase
+SQL editor.
