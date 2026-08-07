@@ -157,7 +157,6 @@
     align-items: start;
   }
   @media (max-width: 900px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 560px) { .board { grid-template-columns: 1fr; } }
 
   .column {
     background: #edece6;
@@ -268,7 +267,7 @@
     border-radius: 12px;
     padding: 24px;
     width: min(400px, calc(100vw - 32px));
-    z-index: 11;
+    z-index: 12; /* above the drawer: the close modal can open from it */
     display: none;
   }
   .modal.open { display: block; }
@@ -312,6 +311,42 @@
   .icon-btn:hover { color: var(--text); background: none; }
   .danger-link { color: var(--danger-text); background: none; border: none; font-size: 12px; padding: 0; margin-top: 16px; }
   .danger-link:hover { text-decoration: underline; background: none; }
+
+  /* Mobile */
+  @media (max-width: 700px) {
+    #app-view { padding: 12px; }
+    /* 16px inputs stop iOS Safari from zooming the page on focus */
+    input, select, textarea { font-size: 16px; }
+    button { padding: 9px 14px; }
+    .topbar { margin-bottom: 10px; }
+    .topbar .who { display: none; }
+    /* Columns become swipeable pages instead of one endless stack */
+    .board {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      gap: 10px;
+      margin: 0 -12px;
+      padding: 0 12px 8px;
+    }
+    .column {
+      flex: 0 0 84%;
+      scroll-snap-align: start;
+      min-height: 260px;
+    }
+    .today { padding: 10px 12px; }
+    .titem { padding: 10px 12px; }
+    .next-prompt {
+      left: 12px; right: 12px;
+      transform: none;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      max-width: none;
+    }
+    .next-prompt .chips { justify-content: space-between; }
+    .chip { padding: 8px 14px; }
+    .drawer .body { padding: 14px 16px; }
+    .drawer footer { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  }
 </style>
 </head>
 <body>
@@ -398,6 +433,10 @@
     <button class="icon-btn" id="drawer-close" aria-label="Close">✕</button>
   </header>
   <div class="body">
+    <div class="field">
+      <label for="d-stage">Stage</label>
+      <select id="d-stage"></select>
+    </div>
     <div class="field">
       <label for="d-company">Company</label>
       <input id="d-company">
@@ -813,6 +852,9 @@ function refreshDrawer() {
   $("d-name").textContent = lead.name;
   const stageLabel = STAGES.find((s) => s.key === lead.stage)?.label ?? lead.stage;
   $("d-sub").textContent = `${stageLabel} · added by ${shortName(lead.owner)}`;
+  $("d-stage").innerHTML = STAGES.map((s) =>
+    `<option value="${s.key}">${s.label}</option>`).join("");
+  $("d-stage").value = lead.stage;
   $("d-company").value = lead.name ?? "";
   $("d-email").value = lead.email ?? "";
   $("d-linkedin").value = lead.linkedin ?? "";
@@ -831,6 +873,12 @@ async function loadNotes(leadId) {
       <div class="txt">${esc(n.body)}</div>
     </div>`).join("") || '<p style="color:var(--text-2); font-size:13px;">No notes yet.</p>';
 }
+
+// Moving without drag-and-drop (touch screens): same rules as a drop,
+// including the forced Won/Lost modal for Closed.
+$("d-stage").addEventListener("change", () => {
+  if (openLeadId) onDrop(openLeadId, $("d-stage").value);
+});
 
 $("d-add-note").addEventListener("click", async () => {
   const body = $("d-new-note").value.trim();
@@ -879,6 +927,7 @@ function showModal(id) {
 function hideModals() {
   document.querySelectorAll(".modal").forEach((m) => m.classList.remove("open"));
   if (!openLeadId) $("overlay").classList.remove("open");
+  else refreshDrawer(); // cancelling the close modal resets the stage select
 }
 $("overlay").addEventListener("click", () => { hideModals(); closeDrawer(); });
 document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", hideModals));
