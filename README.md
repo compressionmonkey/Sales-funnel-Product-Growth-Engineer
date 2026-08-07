@@ -58,6 +58,9 @@ other servers, add an equivalent catch-all rewrite rule.
 - The **Today strip** above the board is the work queue: every card
   that is overdue, due today, or stale, worked left to right. When it's
   empty, you're done for the day.
+- The *Reached out* column shows an **"N added today"** badge — every
+  lead created today counts, whoever added it and wherever it has
+  already been dragged.
 - **Drag cards** between columns as the deal progresses. After every
   drag (and every note), a **next-action prompt** offers one-tap dates
   (tomorrow / 3 days / next week) so no card is left without a next touch.
