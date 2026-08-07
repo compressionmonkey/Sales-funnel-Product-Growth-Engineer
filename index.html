@@ -776,16 +776,10 @@ function renderCard(lead) {
     <p class="name">${esc(lead.name)}</p>
     ${middle}
     ${next}
-    ${lead.email_summary ? '<button class="email-chip" title="Read the email that went out">✉ Read email</button>' : ""}
     <div class="meta">
       <span class="notes-count">💬 ${noteCount}</span>
       <span class="avatar" title="${esc(lead.owner)}">${initials(lead.owner)}</span>
     </div>`;
-  const chip = card.querySelector(".email-chip");
-  if (chip) chip.addEventListener("click", (e) => {
-    e.stopPropagation(); // read the email without opening the drawer
-    openEmailModal(lead.id);
-  });
   return card;
 }
 
@@ -920,6 +914,8 @@ function openDrawer(id) {
   $("overlay").classList.add("open");
   $("drawer").classList.add("open");
   loadNotes(id);
+  // Surface the email right away — closing it reveals the drawer.
+  openEmailModal(id);
 }
 
 function refreshDrawer() {

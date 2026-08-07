@@ -71,9 +71,9 @@ other servers, add an equivalent catch-all rewrite rule.
 - **No response** is a parking lot for leads that went quiet — cards
   there skip the staleness warning and only resurface through their
   next action date.
-- Cards with an email summary show a **✉ Read email** chip — it opens
-  the full text in a pop-up without opening the drawer, so long emails
-  are readable at a glance.
+- If a lead has an email summary, clicking its card **pops the email
+  up first**, full text at reading size; close it and the drawer is
+  underneath. The Read ↗ link in the drawer reopens it anytime.
 - **Counters** in the top bar (overdue / stale / won this month) —
   tap one to spotlight those cards on the board.
 - Cards with **no activity for 3 days** get an amber border and a
