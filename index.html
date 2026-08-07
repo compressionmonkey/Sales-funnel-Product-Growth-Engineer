@@ -382,7 +382,7 @@ async function init() {
 
   db.auth.onAuthStateChange((_event, session) => {
     if (session && !me) enterApp(session.user);
-    if (!session) location.reload();
+    if (event === "SIGNED_OUT") location.reload();
   });
 }
 
