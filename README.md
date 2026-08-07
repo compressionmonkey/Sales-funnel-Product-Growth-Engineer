@@ -42,6 +42,12 @@ Any static hosting works. Easiest options:
   folder onto the page, get a URL, share it.
 - Or upload `index.html` to any web server you already have.
 
+The app routes the login screen to `/login` and the board to `/pipeline`.
+For those URLs to survive a page refresh, the host must rewrite all paths
+to `index.html` — the included `_redirects` file does this on Netlify
+(deploy it alongside `index.html`). On other servers, add an equivalent
+catch-all rewrite rule.
+
 ## How the flow works
 
 - **+ Add lead** creates a card in *Reached out*, owned by whoever is
