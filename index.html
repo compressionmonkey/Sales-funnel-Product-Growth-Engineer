@@ -14,8 +14,6 @@
     --text-2: #6b6a64;
     --accent: #185fa5;
     --accent-bg: #e6f1fb;
-    --warn: #ba7517;
-    --warn-border: #efb75a;
     --success-bg: #eaf3de;
     --success-text: #3b6d11;
     --danger-bg: #fcebeb;
@@ -113,42 +111,9 @@
   }
   .counter b { font-weight: 600; font-variant-numeric: tabular-nums; }
   .counter.overdue b { color: var(--danger-text); }
-  .counter.stale b { color: var(--warn); }
   .counter.won b { color: var(--success-text); }
   .counter.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
   .counter:disabled { cursor: default; background: var(--card); }
-
-  /* Today strip */
-  .today {
-    border: 1px solid var(--border);
-    background: var(--card);
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 16px;
-  }
-  .today .strip-head {
-    font-size: 12px; font-weight: 600; letter-spacing: 0.05em;
-    text-transform: uppercase; color: var(--text-2);
-    margin-bottom: 10px;
-  }
-  .today .strip-head .count { color: var(--text); }
-  .today .items { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
-  .today .done-msg { font-size: 13px; color: var(--text-2); margin: 2px 0; }
-  .titem {
-    flex: none;
-    display: flex; align-items: center; gap: 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 8px 12px;
-    cursor: pointer;
-    background: var(--bg);
-  }
-  .titem:hover { border-color: var(--accent); }
-  .titem .nm { font-weight: 600; font-size: 13px; white-space: nowrap; }
-  .titem .why { font-size: 12px; white-space: nowrap; }
-  .titem.overdue .why { color: var(--danger-text); }
-  .titem.due .why { color: var(--accent); }
-  .titem.stale .why { color: var(--warn); }
 
   .board {
     display: grid;
@@ -211,11 +176,9 @@
     cursor: grab;
   }
   .card:hover { border-color: #c9c7bd; }
-  .card.stale { border-color: var(--warn-border); }
   .card.dimmed { opacity: 0.35; }
   .card .name { font-weight: 600; font-size: 13px; margin: 0 0 3px; }
   .card .email { color: var(--text-2); font-size: 12px; margin: 0 0 8px; }
-  .card .stale-msg { color: var(--warn); font-size: 12px; margin: 0 0 8px; }
   .card .next { font-size: 12px; color: var(--accent); margin: 0 0 8px; }
   .card .next.overdue { color: var(--danger-text); }
   .card .meta { display: flex; justify-content: space-between; align-items: center; }
@@ -240,6 +203,12 @@
   }
   .badge.won { background: var(--success-bg); color: var(--success-text); }
   .badge.lost { background: var(--danger-bg); color: var(--danger-text); }
+  .badge.no-response {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
 
   /* Email reader */
   .email-chip {
@@ -391,8 +360,6 @@
       scroll-snap-align: start;
       min-height: 260px;
     }
-    .today { padding: 10px 12px; }
-    .titem { padding: 10px 12px; }
     .next-prompt {
       left: 12px; right: 12px;
       transform: none;
@@ -432,14 +399,11 @@
     <h1>Pipeline</h1>
     <div class="controls">
       <div class="counters" id="counters"></div>
+      <select id="date-filter"><option value="">All dates</option></select>
       <select id="owner-filter"><option value="">All owners</option></select>
       <span class="who" id="who"></span>
       <button id="logout-btn">Sign out</button>
     </div>
-  </div>
-  <div class="today">
-    <div class="strip-head">Today <span class="count" id="today-count"></span></div>
-    <div class="items" id="today-items"></div>
   </div>
   <div class="board" id="board"></div>
 </div>
@@ -547,6 +511,8 @@ const SUPABASE_URL = "https://oozkbvhdgtvjqvqoggem.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_fxlWuiwU9in-gx1WkpSHGQ_sC8e87St";
 // ============================================================
 
+const NO_RESPONSE_DAYS = 5;
+
 const STAGES = [
   { key: "reached_out", label: "Reached out" },
   { key: "responded",   label: "Responded" },
@@ -554,7 +520,6 @@ const STAGES = [
   { key: "no_response", label: "No response" },
   { key: "closed",      label: "Closed" },
 ];
-const STALE_DAYS = 3;
 
 const $ = (id) => document.getElementById(id);
 let db = null;
@@ -563,7 +528,7 @@ let leads = [];
 let openLeadId = null;
 let pendingCloseId = null;
 let promptLeadId = null;
-let spotlight = null; // 'overdue' | 'stale' | null
+let spotlight = null; // 'overdue' | null
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   $("config-warning").style.display = "block";
@@ -646,19 +611,22 @@ async function loadBoard() {
   if (error) { console.error(error); return; }
   leads = data;
   renderOwnerFilter();
+  renderDateFilter();
   renderAll();
   if (openLeadId) refreshDrawer();
 }
 
 function renderAll() {
   renderCounters();
-  renderToday();
   renderBoard();
 }
 
 function visibleLeads() {
-  const filter = $("owner-filter").value;
-  return leads.filter((l) => !filter || l.owner === filter);
+  const owner = $("owner-filter").value;
+  const added = $("date-filter").value;
+  return leads.filter((l) =>
+    (!owner || l.owner === owner) &&
+    (!added || addedDateKey(l.created_at) === added));
 }
 
 function renderOwnerFilter() {
@@ -672,10 +640,23 @@ function renderOwnerFilter() {
 
 $("owner-filter").addEventListener("change", renderAll);
 
+// Lists every distinct local date on which a lead was created, newest first,
+// so the board can be narrowed to a single day's additions.
+function renderDateFilter() {
+  const sel = $("date-filter");
+  const current = sel.value;
+  const dates = [...new Set(leads.map((l) => addedDateKey(l.created_at)))].sort().reverse();
+  const today = addedDateKey(new Date());
+  sel.innerHTML = '<option value="">All dates</option>' +
+    dates.map((d) => `<option value="${d}">${d === today ? "Today" : fmtDate(d)}</option>`).join("");
+  sel.value = current;
+}
+
+$("date-filter").addEventListener("change", renderAll);
+
 // --- Counters ---
 function renderCounters() {
   const overdue = leads.filter(isOverdue).length;
-  const stale = leads.filter(isStale).length;
   const now = new Date();
   const won = leads.filter((l) => {
     if (l.outcome !== "won") return false;
@@ -687,39 +668,12 @@ function renderCounters() {
        <b>${n}</b> ${label}</button>`;
   $("counters").innerHTML =
     mk("overdue", "overdue", overdue, true) +
-    mk("stale", "stale", stale, true) +
     mk("won", "won this month", won, false);
   document.querySelectorAll("[data-spot]").forEach((b) =>
     b.addEventListener("click", () => {
       spotlight = spotlight === b.dataset.spot ? null : b.dataset.spot;
       renderAll();
     }));
-}
-
-// --- Today strip ---
-function renderToday() {
-  const items = visibleLeads()
-    .filter((l) => isOverdue(l) || isDueToday(l) || isStale(l))
-    .sort((a, b) => (a.next_action || "9999") < (b.next_action || "9999") ? -1 : 1);
-  $("today-count").textContent = `(${items.length})`;
-  const box = $("today-items");
-  if (!items.length) {
-    box.innerHTML = '<p class="done-msg">Nothing due, nothing stale — you’re clear.</p>';
-    return;
-  }
-  box.innerHTML = "";
-  for (const l of items) {
-    let cls, why;
-    if (isOverdue(l)) { cls = "overdue"; why = `overdue ${daysSince(l.next_action + "T00:00:00")}d`; }
-    else if (isDueToday(l)) { cls = "due"; why = "due today"; }
-    else { cls = "stale"; why = `no touch in ${daysSince(l.last_activity)}d`; }
-    const el = document.createElement("button");
-    el.className = "titem " + cls;
-    el.innerHTML = `<span class="nm">${esc(l.name)}</span><span class="why">${why}</span>
-                    <span class="avatar" title="${esc(l.owner)}">${initials(l.owner)}</span>`;
-    el.addEventListener("click", () => openDrawer(l.id));
-    box.appendChild(el);
-  }
 }
 
 // --- Board ---
@@ -732,7 +686,9 @@ function renderBoard() {
   const vis = visibleLeads();
 
   for (const stage of STAGES) {
-    const items = vis.filter((l) => l.stage === stage.key);
+    // Quiet cards float to the top of their column so they get chased first.
+    const items = vis.filter((l) => l.stage === stage.key)
+      .sort((a, b) => isNoResponse(b) - isNoResponse(a));
     const col = document.createElement("div");
     col.className = "column";
     col.dataset.stage = stage.key;
@@ -772,10 +728,8 @@ function renderBoard() {
 
 function renderCard(lead) {
   const card = document.createElement("div");
-  const stale = isStale(lead);
-  card.className = "card" + (stale ? " stale" : "");
+  card.className = "card";
   if (spotlight === "overdue" && !isOverdue(lead)) card.classList.add("dimmed");
-  if (spotlight === "stale" && !stale) card.classList.add("dimmed");
   card.draggable = true;
   card.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", lead.id));
   card.addEventListener("click", () => openDrawer(lead.id));
@@ -785,8 +739,6 @@ function renderCard(lead) {
   if (lead.stage === "closed" && lead.outcome) {
     const reason = lead.outcome === "lost" && lead.lost_reason ? " · " + esc(lead.lost_reason) : "";
     middle = `<span class="badge ${lead.outcome}">${lead.outcome === "won" ? "Won" : "Lost"}${reason}</span>`;
-  } else if (stale) {
-    middle = `<p class="stale-msg">No touch in ${daysSince(lead.last_activity)} days</p>`;
   } else if (lead.email) {
     middle = `<p class="email">${esc(lead.email)}</p>`;
   }
@@ -797,7 +749,11 @@ function renderCard(lead) {
     next = `<p class="next${overdue ? " overdue" : ""}">Next: ${fmtDate(lead.next_action)}${overdue ? " (overdue)" : ""}</p>`;
   }
 
+  const quiet = isNoResponse(lead)
+    ? `<span class="badge no-response">No Response · ${daysSince(lead.last_activity)}d</span>`
+    : "";
   card.innerHTML = `
+    ${quiet}
     <p class="name">${esc(lead.name)}</p>
     ${middle}
     ${next}
@@ -1047,14 +1003,19 @@ function initials(email) {
 }
 function shortName(email) { return email.split("@")[0]; }
 function daysSince(iso) { return Math.floor((Date.now() - new Date(iso)) / 86400000); }
-// "No response" is a parking lot — those cards only resurface via their
-// next action date, not the staleness warning.
-function isStale(lead) {
-  return lead.stage !== "closed" && lead.stage !== "no_response"
-    && daysSince(lead.last_activity) >= STALE_DAYS;
+// Local calendar day of a timestamp, as YYYY-MM-DD — created_at is stored in
+// UTC, so slicing the ISO string would put late-evening adds on the wrong day.
+function addedDateKey(ts) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 function isOverdue(lead) { return lead.stage !== "closed" && lead.next_action && lead.next_action < todayStr(); }
-function isDueToday(lead) { return lead.stage !== "closed" && lead.next_action === todayStr(); }
+// Quiet for too long — flagged on the card so you know to reach out again.
+// The "No response" and "Closed" columns already say it themselves.
+function isNoResponse(lead) {
+  return lead.stage !== "closed" && lead.stage !== "no_response"
+    && daysSince(lead.last_activity) >= NO_RESPONSE_DAYS;
+}
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function fmtDate(d) {
   return new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
