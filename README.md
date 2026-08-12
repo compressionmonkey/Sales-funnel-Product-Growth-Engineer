@@ -84,6 +84,9 @@ other servers, add an equivalent catch-all rewrite rule.
 - Cards whose **next action date** has passed show it in red as overdue.
 - Everyone sees the whole board; the **owner filter** narrows it to one
   person's cards when needed.
+- An **"Is the business closed"** checkbox in the drawer flags leads
+  whose business has shut down; their cards show a red
+  "✕ Business closed" badge.
 - Each lead can be ranked with a **Tier** dropdown in its drawer
   (Tier 1–3); the tier shows as a badge on the card.
 - The **🌴 Bangkok trip** button in the top bar filters the board to
