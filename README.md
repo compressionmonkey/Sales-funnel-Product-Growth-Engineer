@@ -84,6 +84,10 @@ other servers, add an equivalent catch-all rewrite rule.
 - Cards whose **next action date** has passed show it in red as overdue.
 - Everyone sees the whole board; the **owner filter** narrows it to one
   person's cards when needed.
+- The **🌴 Bangkok trip** button in the top bar filters the board to
+  leads tagged for the trip. Tag a lead via the checkbox in its drawer;
+  quick-adding while the filter is on tags new leads automatically.
+  Tagged cards show a 🌴 badge.
 - Changes sync live — when one of you moves a card, the other sees it
   without refreshing.
 
