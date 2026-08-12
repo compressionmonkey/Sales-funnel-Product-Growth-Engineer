@@ -115,6 +115,14 @@
   .counter.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
   .counter:disabled { cursor: default; background: var(--card); }
 
+  #tag-filter { border-radius: 999px; padding: 4px 12px; font-size: 12.5px; }
+  #tag-filter.active {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-bg);
+  }
+
   .board {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -203,6 +211,11 @@
   }
   .badge.won { background: var(--success-bg); color: var(--success-text); }
   .badge.lost { background: var(--danger-bg); color: var(--danger-text); }
+  .badge.tag {
+    background: var(--accent-bg);
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
   .badge.no-response {
     background: var(--danger-bg);
     color: var(--danger-text);
@@ -399,6 +412,7 @@
     <h1>Pipeline</h1>
     <div class="controls">
       <div class="counters" id="counters"></div>
+      <button id="tag-filter" title="Show only Bangkok trip leads">🌴 Bangkok trip</button>
       <select id="date-filter"><option value="">All dates</option></select>
       <select id="owner-filter"><option value="">All owners</option></select>
       <span class="who" id="who"></span>
@@ -480,6 +494,11 @@
       <input id="d-linkedin" placeholder="linkedin.com/in/…">
     </div>
     <div class="field">
+      <label style="display:flex; align-items:center; gap:6px; font-size:14px; color:var(--text); cursor:pointer;">
+        <input id="d-tag" type="checkbox" style="width:auto"> 🌴 Bangkok trip lead
+      </label>
+    </div>
+    <div class="field">
       <div class="field-head">
         <label for="d-email-summary">What did your email say?</label>
         <button type="button" class="reader-link" id="d-read-email">Read ↗</button>
@@ -512,6 +531,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_fxlWuiwU9in-gx1WkpSHGQ_sC8e87St";
 // ============================================================
 
 const NO_RESPONSE_DAYS = 5;
+const BANGKOK_TAG = "bangkok-trip";
 
 const STAGES = [
   { key: "reached_out", label: "Reached out" },
@@ -529,6 +549,7 @@ let openLeadId = null;
 let pendingCloseId = null;
 let promptLeadId = null;
 let spotlight = null; // 'overdue' | null
+let tagFilter = false; // true = only Bangkok-trip-tagged leads
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   $("config-warning").style.display = "block";
@@ -626,7 +647,8 @@ function visibleLeads() {
   const added = $("date-filter").value;
   return leads.filter((l) =>
     (!owner || l.owner === owner) &&
-    (!added || addedDateKey(l.created_at) === added));
+    (!added || addedDateKey(l.created_at) === added) &&
+    (!tagFilter || l.tag === BANGKOK_TAG));
 }
 
 function renderOwnerFilter() {
@@ -653,6 +675,12 @@ function renderDateFilter() {
 }
 
 $("date-filter").addEventListener("change", renderAll);
+
+$("tag-filter").addEventListener("click", () => {
+  tagFilter = !tagFilter;
+  $("tag-filter").classList.toggle("active", tagFilter);
+  renderAll();
+});
 
 // --- Counters ---
 function renderCounters() {
@@ -752,8 +780,10 @@ function renderCard(lead) {
   const quiet = isNoResponse(lead)
     ? `<span class="badge no-response">No Response · ${daysSince(lead.last_activity)}d</span>`
     : "";
+  const tag = lead.tag === BANGKOK_TAG ? `<span class="badge tag">🌴 Bangkok</span>` : "";
   card.innerHTML = `
     ${quiet}
+    ${tag}
     <p class="name">${esc(lead.name)}</p>
     ${middle}
     ${next}
@@ -801,7 +831,9 @@ async function addLeadsFromText(text) {
   const lines = text.split("\n").map((s) => s.trim()).filter(Boolean);
   if (!lines.length) return;
   const rows = lines.map((line) => {
-    const row = { name: line, owner: me.email };
+    // Adding while the Bangkok filter is on tags the new lead, so it
+    // doesn't vanish behind the very filter you're looking through.
+    const row = { name: line, owner: me.email, tag: tagFilter ? BANGKOK_TAG : null };
     const isEmail = /\S+@\S+\.\S+/.test(line);
     const isLinkedin = /linkedin\.com|https?:\/\//i.test(line);
     if (isEmail) {
@@ -913,6 +945,7 @@ function refreshDrawer() {
   $("d-linkedin").value = lead.linkedin ?? "";
   $("d-email-summary").value = lead.email_summary ?? "";
   $("d-next").value = lead.next_action ?? "";
+  $("d-tag").checked = lead.tag === BANGKOK_TAG;
 }
 
 async function loadNotes(leadId) {
@@ -937,6 +970,14 @@ $("d-read-email").addEventListener("click", () => {
 // including the forced Won/Lost modal for Closed.
 $("d-stage").addEventListener("change", () => {
   if (openLeadId) onDrop(openLeadId, $("d-stage").value);
+});
+
+$("d-tag").addEventListener("change", async () => {
+  if (!openLeadId) return;
+  await db.from("leads").update({
+    tag: $("d-tag").checked ? BANGKOK_TAG : null,
+  }).eq("id", openLeadId);
+  loadBoard();
 });
 
 $("d-add-note").addEventListener("click", async () => {
