@@ -7,6 +7,7 @@ create table if not exists leads (
   linkedin text,
   email_summary text,
   tag text,
+  tier text check (tier in ('tier_1', 'tier_2', 'tier_3')),
   stage text not null default 'reached_out'
     check (stage in ('reached_out', 'responded', 'follow_up', 'no_response', 'closed')),
   owner text not null,
