@@ -216,6 +216,12 @@
     color: var(--accent);
     margin-bottom: 6px;
   }
+  .badge.tier {
+    background: var(--bg);
+    color: var(--text-2);
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
   .badge.no-response {
     background: var(--danger-bg);
     color: var(--danger-text);
@@ -482,6 +488,10 @@
       <select id="d-stage"></select>
     </div>
     <div class="field">
+      <label for="d-tier">Tier</label>
+      <select id="d-tier"></select>
+    </div>
+    <div class="field">
       <label for="d-company">Company</label>
       <input id="d-company">
     </div>
@@ -532,6 +542,12 @@ const SUPABASE_ANON_KEY = "sb_publishable_fxlWuiwU9in-gx1WkpSHGQ_sC8e87St";
 
 const NO_RESPONSE_DAYS = 5;
 const BANGKOK_TAG = "bangkok-trip";
+
+const TIERS = [
+  { key: "tier_1", label: "Tier 1" },
+  { key: "tier_2", label: "Tier 2" },
+  { key: "tier_3", label: "Tier 3" },
+];
 
 const STAGES = [
   { key: "reached_out", label: "Reached out" },
@@ -781,9 +797,12 @@ function renderCard(lead) {
     ? `<span class="badge no-response">No Response · ${daysSince(lead.last_activity)}d</span>`
     : "";
   const tag = lead.tag === BANGKOK_TAG ? `<span class="badge tag">🌴 Bangkok</span>` : "";
+  const tierLabel = TIERS.find((t) => t.key === lead.tier)?.label;
+  const tier = tierLabel ? `<span class="badge tier">${tierLabel}</span>` : "";
   card.innerHTML = `
     ${quiet}
     ${tag}
+    ${tier}
     <p class="name">${esc(lead.name)}</p>
     ${middle}
     ${next}
@@ -940,6 +959,9 @@ function refreshDrawer() {
   $("d-stage").innerHTML = STAGES.map((s) =>
     `<option value="${s.key}">${s.label}</option>`).join("");
   $("d-stage").value = lead.stage;
+  $("d-tier").innerHTML = '<option value="">No tier</option>' + TIERS.map((t) =>
+    `<option value="${t.key}">${t.label}</option>`).join("");
+  $("d-tier").value = lead.tier ?? "";
   $("d-company").value = lead.name ?? "";
   $("d-email").value = lead.email ?? "";
   $("d-linkedin").value = lead.linkedin ?? "";
@@ -970,6 +992,12 @@ $("d-read-email").addEventListener("click", () => {
 // including the forced Won/Lost modal for Closed.
 $("d-stage").addEventListener("change", () => {
   if (openLeadId) onDrop(openLeadId, $("d-stage").value);
+});
+
+$("d-tier").addEventListener("change", async () => {
+  if (!openLeadId) return;
+  await db.from("leads").update({ tier: $("d-tier").value || null }).eq("id", openLeadId);
+  loadBoard();
 });
 
 $("d-tag").addEventListener("change", async () => {
