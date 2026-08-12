@@ -222,6 +222,12 @@
     border: 1px solid var(--border);
     margin-bottom: 6px;
   }
+  .badge.closed-down {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
   .badge.no-response {
     background: var(--danger-bg);
     color: var(--danger-text);
@@ -506,6 +512,11 @@
     <div class="field">
       <label style="display:flex; align-items:center; gap:6px; font-size:14px; color:var(--text); cursor:pointer;">
         <input id="d-tag" type="checkbox" style="width:auto"> 🌴 Bangkok trip lead
+      </label>
+    </div>
+    <div class="field">
+      <label style="display:flex; align-items:center; gap:6px; font-size:14px; color:var(--text); cursor:pointer;">
+        <input id="d-closed-down" type="checkbox" style="width:auto"> Is the business closed
       </label>
     </div>
     <div class="field">
@@ -799,10 +810,12 @@ function renderCard(lead) {
   const tag = lead.tag === BANGKOK_TAG ? `<span class="badge tag">🌴 Bangkok</span>` : "";
   const tierLabel = TIERS.find((t) => t.key === lead.tier)?.label;
   const tier = tierLabel ? `<span class="badge tier">${tierLabel}</span>` : "";
+  const closedDown = lead.is_closed_down ? `<span class="badge closed-down">✕ Business closed</span>` : "";
   card.innerHTML = `
     ${quiet}
     ${tag}
     ${tier}
+    ${closedDown}
     <p class="name">${esc(lead.name)}</p>
     ${middle}
     ${next}
@@ -968,6 +981,7 @@ function refreshDrawer() {
   $("d-email-summary").value = lead.email_summary ?? "";
   $("d-next").value = lead.next_action ?? "";
   $("d-tag").checked = lead.tag === BANGKOK_TAG;
+  $("d-closed-down").checked = !!lead.is_closed_down;
 }
 
 async function loadNotes(leadId) {
@@ -1004,6 +1018,14 @@ $("d-tag").addEventListener("change", async () => {
   if (!openLeadId) return;
   await db.from("leads").update({
     tag: $("d-tag").checked ? BANGKOK_TAG : null,
+  }).eq("id", openLeadId);
+  loadBoard();
+});
+
+$("d-closed-down").addEventListener("change", async () => {
+  if (!openLeadId) return;
+  await db.from("leads").update({
+    is_closed_down: $("d-closed-down").checked,
   }).eq("id", openLeadId);
   loadBoard();
 });
