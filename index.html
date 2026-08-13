@@ -736,9 +736,13 @@ $("lead-search").addEventListener("keydown", (e) => {
   if (e.key === "Enter") runSearch();
 });
 
-// Clearing the box (the native ✕ or deleting the text) restores the full board.
+// Live search: re-query as the user types, debounced so a quick burst of
+// keystrokes turns into one Supabase request. Clearing the box (the native
+// ✕ or deleting the text) restores the full board the same way.
+let searchDebounce = null;
 $("lead-search").addEventListener("input", () => {
-  if (searchTerm && !$("lead-search").value.trim()) runSearch();
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(runSearch, 250);
 });
 
 $("tag-filter").addEventListener("click", () => {
