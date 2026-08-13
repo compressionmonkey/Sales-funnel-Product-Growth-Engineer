@@ -9,6 +9,7 @@ create table if not exists leads (
   tag text,
   tier text check (tier in ('tier_1', 'tier_2', 'tier_3')),
   is_closed_down boolean not null default false,
+  not_relevant boolean not null default false,
   stage text not null default 'reached_out'
     check (stage in ('reached_out', 'responded', 'follow_up', 'no_response', 'closed')),
   owner text not null,
