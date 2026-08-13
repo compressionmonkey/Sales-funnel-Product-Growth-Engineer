@@ -115,6 +115,10 @@
   .counter.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
   .counter:disabled { cursor: default; background: var(--card); }
 
+  .search-box { display: flex; gap: 4px; align-items: center; }
+  .search-box input { width: 150px; padding: 4px 10px; font-size: 12.5px; border-radius: 999px; }
+  .search-box button { border-radius: 999px; padding: 4px 10px; font-size: 12.5px; }
+
   #tag-filter { border-radius: 999px; padding: 4px 12px; font-size: 12.5px; }
   #tag-filter.active {
     border-color: var(--accent);
@@ -430,6 +434,10 @@
     <h1>Pipeline</h1>
     <div class="controls">
       <div class="counters" id="counters"></div>
+      <div class="search-box">
+        <input id="lead-search" type="search" placeholder="Search leads…" aria-label="Search leads by name">
+        <button id="lead-search-btn" title="Search leads by name">🔍</button>
+      </div>
       <button id="tag-filter" title="Show only Bangkok trip leads">🌴 Bangkok trip</button>
       <select id="date-filter"><option value="">All dates</option></select>
       <select id="owner-filter"><option value="">All owners</option></select>
@@ -588,6 +596,7 @@ let pendingCloseId = null;
 let promptLeadId = null;
 let spotlight = null; // 'overdue' | null
 let tagFilter = false; // true = only Bangkok-trip-tagged leads
+let searchTerm = ""; // applied server-side against leads.name
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   $("config-warning").style.display = "block";
@@ -662,11 +671,13 @@ $("logout-btn").addEventListener("click", async () => {
 });
 
 async function loadBoard() {
-  const { data, error } = await db
+  let query = db
     .from("leads")
     .select("*, notes(count)")
     .order("next_action", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
+  if (searchTerm) query = query.ilike("name", `%${searchTerm}%`);
+  const { data, error } = await query;
   if (error) { console.error(error); return; }
   leads = data;
   renderOwnerFilter();
@@ -713,6 +724,22 @@ function renderDateFilter() {
 }
 
 $("date-filter").addEventListener("change", renderAll);
+
+function runSearch() {
+  searchTerm = $("lead-search").value.trim();
+  loadBoard();
+}
+
+$("lead-search-btn").addEventListener("click", runSearch);
+
+$("lead-search").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") runSearch();
+});
+
+// Clearing the box (the native ✕ or deleting the text) restores the full board.
+$("lead-search").addEventListener("input", () => {
+  if (searchTerm && !$("lead-search").value.trim()) runSearch();
+});
 
 $("tag-filter").addEventListener("click", () => {
   tagFilter = !tagFilter;
