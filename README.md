@@ -84,6 +84,9 @@ other servers, add an equivalent catch-all rewrite rule.
 - Cards whose **next action date** has passed show it in red as overdue.
 - Everyone sees the whole board; the **owner filter** narrows it to one
   person's cards when needed.
+- A **search box** in the top bar finds leads by name — results update
+  live as you type (it queries Supabase, matching anywhere in the name,
+  case-insensitively). Clear the box to see the full board again.
 - An **"Is the business closed"** checkbox in the drawer flags leads
   whose business has shut down; their cards show a red
   "✕ Business closed" badge.
