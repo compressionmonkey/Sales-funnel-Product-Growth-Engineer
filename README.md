@@ -87,6 +87,8 @@ other servers, add an equivalent catch-all rewrite rule.
 - An **"Is the business closed"** checkbox in the drawer flags leads
   whose business has shut down; their cards show a red
   "✕ Business closed" badge.
+- A **"Not relevant"** checkbox in the drawer flags leads that aren't
+  a fit; their cards show a red "✕ Not relevant" badge.
 - Each lead can be ranked with a **Tier** dropdown in its drawer
   (Tier 1–3); the tier shows as a badge on the card.
 - The **🌴 Bangkok trip** button in the top bar filters the board to
