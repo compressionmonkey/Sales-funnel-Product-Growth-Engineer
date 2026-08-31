@@ -1,106 +1,98 @@
-# Sales-funnel-Product-Growth-Engineer
-# GTM board
+# GTM Board
 
-A single-file sales pipeline board for a small team. Five columns
-(Reached out → Responded → Follow-up → No response → Closed),
-drag-and-drop, notes per lead, staleness warnings, and live sync
-between users via Supabase.
+A lightweight, single-file sales pipeline board for small teams. Track leads through five stages, collaborate in real time, and never lose touch with a prospect — no build step, no framework, just `index.html` plus Supabase.
 
-No build step, no framework — `index.html` is the whole app.
+- **Live demo / app**: `index.html`
+- **Stack**: Vanilla HTML/JS/CSS + [Supabase](https://supabase.com)
+- **Deployment**: Any static host (Netlify, Vercel, or your own server)
 
-## Setup (one time, ~10 minutes)
+---
 
-1. **Create a Supabase project** at https://supabase.com (free tier is fine).
+## Features
 
-2. **Run the schema**: in the Supabase dashboard, open *SQL Editor*,
-   paste the contents of `schema.sql`, and run it.
+- **Kanban pipeline**: `Reached out → Responded → Follow-up → No response → Closed`.
+- **Drag-and-drop** cards between stages.
+- **Live sync** across users via Supabase real-time subscriptions.
+- **Today strip**: a work queue of overdue, due-today, and stale leads.
+- **Smart quick-add**: paste a multi-line list to bulk-create leads, or paste an email / LinkedIn URL to auto-fill those fields.
+- **Per-lead drawer**: company, email, LinkedIn, email summary, next-action date, tier, notes.
+- **Forced close reasons**: closing a deal requires Won/Lost and a lost reason, so pipeline data stays clean.
+- **Staleness & overdue warnings**: configurable stale threshold (`STALE_DAYS`), red overdue dates.
+- **Filters & search**: owner filter, Bangkok trip tag, live name search.
+- **Badges**: business closed, not relevant, tier, and 🌴 Bangkok trip.
+- **Append-only notes** with automatic author timestamps.
 
-3. **Create the two users**: go to *Authentication → Users → Add user →
-   Create new user*. Enter each person's email and a password, and tick
-   **Auto confirm user** so no confirmation email is needed.
-   (Optional hardening: under *Authentication → Sign In / Up*, disable
-   public sign-ups so only accounts you create can log in.)
+---
 
-4. **Paste your keys**: in the dashboard under *Project settings → API*,
-   copy the *Project URL* and the *anon public* key, and paste them into
-   the two constants at the top of the `<script>` block in `index.html`:
+## Quick start (~10 minutes)
+
+1. **Create a Supabase project** at https://supabase.com (free tier works fine).
+2. **Run the schema**: open the Supabase SQL Editor, paste `gtm-board/schema.sql`, and run it.
+3. **Create users**: go to *Authentication → Users → Add user → Create new user*. Add each team member, tick **Auto confirm user**, and optionally disable public sign-ups under *Authentication → Sign In / Up*.
+4. **Add your keys**: under *Project settings → API*, copy the **Project URL** and **anon public** key into the top of the `<script>` block in `index.html`:
 
    ```js
    const SUPABASE_URL = "https://xxxx.supabase.co";
    const SUPABASE_ANON_KEY = "eyJ...";
    ```
 
-   The anon key is safe to ship in the HTML — it only grants what the
-   row-level security policies allow, which is "logged-in users only".
+   The anon key is safe to ship in HTML because Row Level Security restricts access to logged-in users only.
+5. **Open `index.html`** in a browser and sign in.
 
-5. **Open `index.html`** in a browser and sign in. That's it.
+---
 
-## Sharing it with your salesman
+## Deployment
 
-Any static hosting works. Easiest options:
+Any static host works:
 
-- **Netlify Drop** (https://app.netlify.com/drop): drag the `gtm-board`
-  folder onto the page, get a URL, share it.
-- Or upload `index.html` to any web server you already have.
+| Host | What to upload |
+|------|----------------|
+| **Netlify** | Drag the `gtm-board` folder onto [Netlify Drop](https://app.netlify.com/drop). `_redirects` handles SPA routing. |
+| **Vercel** | Deploy `index.html` and `vercel.json` together; `vercel.json` rewrites all paths to `index.html`. |
+| **Other** | Upload `index.html` and add a catch-all rewrite rule so `/login` and `/pipeline` resolve to `index.html`. |
 
-The app routes the login screen to `/login` and the board to `/pipeline`.
-For those URLs to survive a page refresh, the host must rewrite all paths
-to `index.html` — the included `_redirects` file does this on Netlify and
-`vercel.json` does it on Vercel (deploy them alongside `index.html`). On
-other servers, add an equivalent catch-all rewrite rule.
+The app uses two client-side routes:
 
-## How the flow works
+- `/login` — sign-in screen
+- `/pipeline` — the board
 
-- **Quick-add** at the top of *Reached out*: type a name and press
-  Enter — the input stays focused so you can add several in a row.
-  Paste a multi-line list to create one card per line; pasting an email
-  or LinkedIn URL fills that field automatically.
-- The **Today strip** above the board is the work queue: every card
-  that is overdue, due today, or stale, worked left to right. When it's
-  empty, you're done for the day.
-- The *Reached out* column shows an **"N added today"** badge — every
-  lead created today counts, whoever added it and wherever it has
-  already been dragged.
-- **Drag cards** between columns as the deal progresses. After every
-  drag (and every note), a **next-action prompt** offers one-tap dates
-  (tomorrow / 3 days / next week) so no card is left without a next touch.
-- Dropping a card into **Closed** forces a Won/Lost choice; a lost deal
-  asks for the reason (price, timing, not a fit…). This is deliberate —
-  it's the only way to close a card, so the data always gets captured.
-- **Click a card** to open the drawer: change its stage, edit company,
-  contact email, LinkedIn, what your email said, next action date, and
-  add timestamped notes. Notes are append-only and stamped with the
-  author automatically.
-- **No response** is a parking lot for leads that went quiet — cards
-  there skip the staleness warning and only resurface through their
-  next action date.
-- If a lead has an email summary, clicking its card **pops the email
-  up first**, full text at reading size; close it and the drawer is
-  underneath. The Read ↗ link in the drawer reopens it anytime.
-- **Counters** in the top bar (overdue / stale / won this month) —
-  tap one to spotlight those cards on the board.
-- Cards with **no activity for 3 days** get an amber border and a
-  "no touch in N days" warning (change `STALE_DAYS` in the script).
-- Cards whose **next action date** has passed show it in red as overdue.
-- Everyone sees the whole board; the **owner filter** narrows it to one
-  person's cards when needed.
-- A **search box** in the top bar finds leads by name — results update
-  live as you type (it queries Supabase, matching anywhere in the name,
-  case-insensitively). Clear the box to see the full board again.
-- An **"Is the business closed"** checkbox in the drawer flags leads
-  whose business has shut down; their cards show a red
-  "✕ Business closed" badge.
-- A **"Not relevant"** checkbox in the drawer flags leads that aren't
-  a fit; their cards show a red "✕ Not relevant" badge.
-- Each lead can be ranked with a **Tier** dropdown in its drawer
-  (Tier 1–3); the tier shows as a badge on the card.
-- The **🌴 Bangkok trip** button in the top bar filters the board to
-  leads tagged for the trip. Tag a lead via the checkbox in its drawer;
-  quick-adding while the filter is on tags new leads automatically.
-  Tagged cards show a 🌴 badge.
-- Changes sync live — when one of you moves a card, the other sees it
-  without refreshing.
+---
 
-Upgrading an existing database? Run the `gtm-board/migrate-*.sql` files
-you haven't run yet, in filename order, once each in the Supabase SQL
-editor.
+## Using the board
+
+- **Quick-add** at the top of *Reached out*: type a name and press Enter; the input stays focused for rapid entry.
+- **Today strip** above the board lists overdue, due-today, and stale leads — work it left to right.
+- **"N added today"** badge in *Reached out* counts every lead created today, regardless of current stage or owner.
+- **Drag cards** between columns; after each drop or note edit, a one-tap prompt sets the next touch date.
+- **Click a card** to open the drawer and edit fields, add notes, change stage, set tier, or flag closed / not relevant / Bangkok trip.
+- **Email summaries** pop open first when a lead has one; close it to reach the drawer. The drawer’s *Read ↗* link reopens the summary.
+- **Top-bar counters** (overdue / stale / won this month) are tappable filters.
+- **Search** matches anywhere in the lead name, case-insensitively, live against Supabase.
+
+---
+
+## Upgrading an existing database
+
+New fields are added through migration files in `gtm-board/migrate-*.sql`. Run only the files you have not run yet, in filename order, once each in the Supabase SQL editor.
+
+---
+
+## File layout
+
+```
+.
+├── index.html          # The entire app (no build step)
+├── vercel.json         # Vercel SPA rewrite rule
+├── _redirects          # Netlify SPA rewrite rule
+├── README.md           # This file
+└── gtm-board/
+    ├── schema.sql      # Initial Supabase schema
+    └── migrate-*.sql   # Incremental migrations
+```
+
+---
+
+## Customizing
+
+- `STALE_DAYS` in the script controls when a card is flagged as stale.
+- The "Bangkok trip" tag and tier dropdown can be extended with additional migrations and matching UI in `index.html`.
